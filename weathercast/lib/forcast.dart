@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
@@ -7,10 +9,11 @@ import 'weather.dart';
 Future<Weather> forecast() async {
   const url = 'https://data.tmd.go.th/nwpapi/v1/forecast/location/hourly/at';
   const token =
-      'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjFkMjIxNDc3Yjk4YmUxOTUwNWE3Y2VmOWUwZWVhNWUzMThiZmI0OTIyNjc4ODJkNWMxZTU1YTY5YTE5MTNhNzU2MjI5ZWJjYTE2YzMxZGY3In0.eyJhdWQiOiIyIiwianRpIjoiMWQyMjE0NzdiOThiZTE5NTA1YTdjZWY5ZTBlZWE1ZTMxOGJmYjQ5MjI2Nzg4MmQ1YzFlNTVhNjlhMTkxM2E3NTYyMjllYmNhMTZjMzFkZjciLCJpYXQiOjE3MDc4ODIyNDUsIm5iZiI6MTcwNzg4MjI0NSwiZXhwIjoxNzM5NTA0NjQ1LCJzdWIiOiIzMDE0Iiwic2NvcGVzIjpbXX0.IwYp4v0BCOvj0A4GCLKPnt8ccvAObuD1WJ4w16iJnp5qTpwfDbmoGSFh1dtnnog2zAEk7WFyhfjVqOcz5X9gDTc8TfSytq4z28y_6Ma8geXif_e2qJVkYZ3OzGYf7g3DkSXYHKIgY4O0lzmnjRrpj8_q3TXG16-jKoJWQtmhBaLDFqYxYEtQOw1s6u3tuR8RGyD8bfa55wmK9MCMUA0tXZFzZJByhadTXVLZsLTLheXRC0qe2NMI_GtrgMBy7iUcaFNDGDML5f4Z3sUT1-Cj_ms2E-DlU8thOgyv3NzCYSJyF3wOm7aYAoY9dVpo1sz8qb0luwn9pPhlxU71_a962rcH8oY8JNLtRnGwSLFBqbpgA6sphPBTCA5yfjeQ-KkvzMgcxvlcwsmoD6KRjxJynskF7Ruy8oSGEDLYhN1ZbN9JtCYB9ogyjvVCG-xW9GTMlh-hK9uOaFrNDyYPq8_CQcpTt3IJHywYp9_XV86y07ogNmyoxdkaBMIB19hwr4F7bdRN9hFFUsS6mL2Qm2jPeBZiiyB6iKNETzCL3pMYAWsd5oD9HP2DqBVIFOcBiaBKA7F8ZB5vp3ZZ_Kw5Q_Qk2ZLZ11T-Rd4RNOLPSL5bYuMtJCU4S5XLk5kFsVbrH2Cg4E_xPJpFOYHojii7dLjYL6QpArY2km8DbawrOV_6BuI';
+      'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6ImRmNDcwYzU4ZTM0MzI3MWUyY2NjYmU2MjQ4MTZmZjFhNmExM2UzZDc2NWJiNDI0MGY4NDQ4MmZiZDljZWEwMTM4MTc5OWMwMzMzY2U3OTFiIn0.eyJhdWQiOiIyIiwianRpIjoiZGY0NzBjNThlMzQzMjcxZTJjY2NiZTYyNDgxNmZmMWE2YTEzZTNkNzY1YmI0MjQwZjg0NDgyZmJkOWNlYTAxMzgxNzk5YzAzMzNjZTc5MWIiLCJpYXQiOjE3MDc4ODIyNDQsIm5iZiI6MTcwNzg4MjI0NCwiZXhwIjoxNzM5NTA0NjQ0LCJzdWIiOiIzMDA4Iiwic2NvcGVzIjpbXX0.QtCf8PuYIA8Da94uveAfQ0at8AR26i2z7zQ6-vFy84WB7PbWT_RbqovTTxSMwshHa4VkzzPiOMoE92BkkBnLIEcXfwzjAp-fh4w9g28rSTwOaGz3g46Lfj8EW1Zdmg5Uxf6G0wL_CR3JcVBUQelioVoEsOPXprgqRqXeHo9nfxCkW7Td6aCazaGgvRNXQiXObGfhNLsVjCVuZQvSeOSiU1-7YmE9yZhi56NDJV7izwitqLgLAcXvb4nY_ALidwD87SD-DfqYiHHNtsJ6bSEgcfLwv-lGNspEA6j9HMZepzysPz8XorZsKlvGNZGgRD3NHLkWqU21KGIQb5V-Ba3NdWiKrqMO2nwHvmGfhjouKR2RkBiOryAC0ZScW4Nps9qBBjR_gFS5YLniGyjkPbWE_9ocpPRZYwDPjybtI5xIayzHJi-LPKdMX6ch3rvSa7xXWgy2aFQbYn7XmepxIJc5gUFsxi51C7eFHJ9xgPNOw7Nq9LhiWKBtYewkfsw33kcxBcPinoU3RwYvRhsYHX2Z0RINURaXgEWlBuBYxPbqu-bdSxtuNC9wgQDjlN9ez5vTUxi9Cp8VraRhSoGbmMKj0HvqSqBYoDjcmn1WdtK_K7JxPKavBcYAPdaEzxHGgthwyh3zdHjFNgE4wv-fdy1qAD4vvaP5y8xaADbThAkDezw';
 
   try {
     Position location = await getCurrentLocation();
+
     http.Response response = await http.get(
         Uri.parse(
             '$url?lat=${location.latitude}&lon=${location.longitude}&fields=tc,cond'),
@@ -18,7 +21,20 @@ Future<Weather> forecast() async {
           'accept': 'application/json',
           'authorization': 'Bearer $token',
         });
-    return Weather(address: response.body, temperature: 0, cond: 0);
+    if (response.statusCode == 200) {
+      var result = jsonDecode(response.body)["WeatherForecasts"][0]["forecasts"]
+          [0]["data"];
+      Placemark address = (await placemarkFromCoordinates(
+              location.latitude, location.longitude))
+          .first;
+      return Weather(
+        address: '${address.subLocality}\n${address.administrativeArea}',
+        temperature: result['tc'],
+        cond: result['cond'],
+      );
+    } else {
+      return Future.error(response.statusCode);
+    }
   } catch (e) {
     return Future.error(e);
   }
